@@ -72,13 +72,15 @@ const FileUpload = ({ onUploadComplete, currentUserId }: FileUploadProps) => {
       setUploadProgress(80);
 
       // Update file record
-      await supabase
-        .from('uploaded_files')
-        .update({
-          processing_status: 'completed',
-          messages_extracted: messageCount
-        })
-        .eq('id', fileRecord.id);
+      if (fileRecord) {
+        await supabase
+          .from('uploaded_files')
+          .update({
+            processing_status: 'completed',
+            messages_extracted: messageCount
+          })
+          .eq('id', fileRecord.id);
+      }
 
       setUploadProgress(100);
       setUploadStatus('success');
@@ -88,7 +90,7 @@ const FileUpload = ({ onUploadComplete, currentUserId }: FileUploadProps) => {
         description: `${messageCount} mensagens extraídas para treinamento`,
       });
 
-      onUploadComplete?.(fileRecord);
+      onUploadComplete && onUploadComplete(fileRecord);
 
     } catch (error) {
       console.error('Upload error:', error);

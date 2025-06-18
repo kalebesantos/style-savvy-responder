@@ -25,6 +25,7 @@ const Index = () => {
       const { data, error } = await supabase
         .from('bot_config')
         .select('*')
+        .limit(1)
         .single();
       
       if (error) throw error;

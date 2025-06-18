@@ -47,40 +47,49 @@ const BotControls = ({ botStatus, onStatusChange, currentUser }: BotControlsProp
   const handleStartBot = async () => {
     setIsLoading(true);
     try {
-      // Update bot status to connecting
-      await supabase
+      // Get the first bot config
+      const { data: configData } = await supabase
         .from('bot_config')
-        .update({ bot_status: 'connecting' })
-        .eq('id', (await supabase.from('bot_config').select('id').single()).data?.id);
+        .select('id')
+        .limit(1)
+        .single();
 
-      onStatusChange && onStatusChange('connecting');
-      
-      // Simulate QR code generation
-      setShowQR(true);
-      
-      toast({
-        title: "Iniciando bot...",
-        description: "Escaneie o QR code com o WhatsApp",
-      });
-
-      // Simulate connection after 5 seconds
-      setTimeout(async () => {
+      if (configData) {
+        // Update bot status to connecting
         await supabase
           .from('bot_config')
-          .update({ 
-            bot_status: 'online',
-            last_qr_code: 'mock-qr-code-data'
-          })
-          .eq('id', (await supabase.from('bot_config').select('id').single()).data?.id);
-          
-        onStatusChange && onStatusChange('online');
-        setShowQR(false);
+          .update({ bot_status: 'connecting' })
+          .eq('id', configData.id);
+
+        onStatusChange && onStatusChange('connecting');
+        
+        // Simulate QR code generation
+        setShowQR(true);
         
         toast({
-          title: "Bot conectado!",
-          description: "WhatsApp conectado com sucesso",
+          title: "Iniciando bot...",
+          description: "Escaneie o QR code com o WhatsApp",
         });
-      }, 5000);
+
+        // Simulate connection after 5 seconds
+        setTimeout(async () => {
+          await supabase
+            .from('bot_config')
+            .update({ 
+              bot_status: 'online',
+              last_qr_code: 'mock-qr-code-data'
+            })
+            .eq('id', configData.id);
+            
+          onStatusChange && onStatusChange('online');
+          setShowQR(false);
+          
+          toast({
+            title: "Bot conectado!",
+            description: "WhatsApp conectado com sucesso",
+          });
+        }, 5000);
+      }
 
     } catch (error) {
       console.error('Error starting bot:', error);
@@ -97,18 +106,26 @@ const BotControls = ({ botStatus, onStatusChange, currentUser }: BotControlsProp
   const handleStopBot = async () => {
     setIsLoading(true);
     try {
-      await supabase
+      const { data: configData } = await supabase
         .from('bot_config')
-        .update({ bot_status: 'offline' })
-        .eq('id', (await supabase.from('bot_config').select('id').single()).data?.id);
+        .select('id')
+        .limit(1)
+        .single();
 
-      onStatusChange && onStatusChange('offline');
-      setShowQR(false);
-      
-      toast({
-        title: "Bot desconectado",
-        description: "WhatsApp desconectado com sucesso",
-      });
+      if (configData) {
+        await supabase
+          .from('bot_config')
+          .update({ bot_status: 'offline' })
+          .eq('id', configData.id);
+
+        onStatusChange && onStatusChange('offline');
+        setShowQR(false);
+        
+        toast({
+          title: "Bot desconectado",
+          description: "WhatsApp desconectado com sucesso",
+        });
+      }
 
     } catch (error) {
       console.error('Error stopping bot:', error);
