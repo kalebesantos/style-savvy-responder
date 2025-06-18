@@ -53,7 +53,7 @@ const BotControls = ({ botStatus, onStatusChange, currentUser }: BotControlsProp
         .update({ bot_status: 'connecting' })
         .eq('id', (await supabase.from('bot_config').select('id').single()).data?.id);
 
-      onStatusChange?('connecting');
+      onStatusChange && onStatusChange('connecting');
       
       // Simulate QR code generation
       setShowQR(true);
@@ -73,7 +73,7 @@ const BotControls = ({ botStatus, onStatusChange, currentUser }: BotControlsProp
           })
           .eq('id', (await supabase.from('bot_config').select('id').single()).data?.id);
           
-        onStatusChange?('online');
+        onStatusChange && onStatusChange('online');
         setShowQR(false);
         
         toast({
@@ -102,7 +102,7 @@ const BotControls = ({ botStatus, onStatusChange, currentUser }: BotControlsProp
         .update({ bot_status: 'offline' })
         .eq('id', (await supabase.from('bot_config').select('id').single()).data?.id);
 
-      onStatusChange?('offline');
+      onStatusChange && onStatusChange('offline');
       setShowQR(false);
       
       toast({
