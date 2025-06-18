@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface BotControlsProps {
   botStatus: 'online' | 'offline' | 'connecting' | 'error';
-  onStatusChange?: (status: string) => void;
+  onStatusChange?: (status: 'online' | 'offline' | 'connecting' | 'error') => void;
   currentUser?: any;
 }
 
