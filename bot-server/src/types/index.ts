@@ -1,4 +1,3 @@
-
 export interface BotConfig {
   id: string;
   bot_status: 'online' | 'offline' | 'connecting' | 'error';
@@ -11,25 +10,25 @@ export interface BotConfig {
 }
 
 export interface WhatsAppUser {
-  id: string;
+  id?: string;
   phone_number: string;
   display_name?: string;
   is_connected: boolean;
   connected_at?: string;
   last_activity?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ConversationMessage {
-  id: string;
+  id?: string;
   user_id: string;
   content: string;
   message_type: 'incoming' | 'outgoing';
   audio_transcript?: string;
   timestamp: string;
   processed: boolean;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface UserLearningData {
