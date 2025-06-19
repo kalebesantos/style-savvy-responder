@@ -1,3 +1,4 @@
+
 import { supabase } from './supabaseClient';
 import { BotConfig, WhatsAppUser, ConversationMessage, UserLearningData } from '../types';
 import logger from '../utils/logger';
@@ -19,7 +20,7 @@ class DatabaseService {
   async findOrCreateUser(phone: string, name?: string): Promise<WhatsAppUser | null> {
     try {
       const { data: existing, error } = await supabase
-        .from<WhatsAppUser>('whatsapp_users')
+        .from('whatsapp_users')
         .select('*')
         .eq('phone_number', phone)
         .single();
@@ -27,7 +28,7 @@ class DatabaseService {
       if (existing) return existing;
 
       const { data: created, error: insertError } = await supabase
-        .from<WhatsAppUser>('whatsapp_users')
+        .from('whatsapp_users')
         .insert([{ phone_number: phone, display_name: name || '' }])
         .select()
         .single();
@@ -63,7 +64,7 @@ class DatabaseService {
   async getUserLearningData(userId: string): Promise<UserLearningData | null> {
     try {
       const { data, error } = await supabase
-        .from<UserLearningData>('user_learning')
+        .from('user_learning')
         .select('*')
         .eq('user_id', userId)
         .single();
@@ -79,7 +80,7 @@ class DatabaseService {
   async getBotConfig(): Promise<BotConfig | null> {
     try {
       const { data, error } = await supabase
-        .from<BotConfig>('bot_config')
+        .from('bot_config')
         .select('*')
         .limit(1)
         .single();

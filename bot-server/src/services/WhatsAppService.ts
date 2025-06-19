@@ -83,7 +83,7 @@ export class WhatsAppService {
             userInfo.id.split(':')[0],
             userInfo.name
           );
-          if (user) {
+          if (user && user.id) {
             this.currentUser = user;
             await DatabaseService.setCurrentUser(user.id);
             logger.info(`Connected as: ${user.display_name || user.phone_number}`);
