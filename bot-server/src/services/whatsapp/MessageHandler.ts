@@ -24,25 +24,25 @@ export class MessageHandler {
       logger.info(`Message from ${senderNumber}: ${messageText}`);
 
       // Store message in database
-      await DatabaseService.storeMessage({
-        sender_number: senderNumber,
-        message_text: messageText,
+      await DatabaseService.saveMessage({
+        user_id: currentUser.id,
+        content: messageText,
         message_type: 'received',
-        bot_user_id: currentUser.id
+        timestamp: new Date()
       });
 
       // Process with AI if available
       try {
         const aiResponse = await AIService.generateResponse(messageText);
-        if (aiResponse) {
-          await socket.sendMessage(message.key.remoteJid, { text: aiResponse });
+        if (aiResponse && aiResponse.text) {
+          await socket.sendMessage(message.key.remoteJid, { text: aiResponse.text });
           
           // Store AI response
-          await DatabaseService.storeMessage({
-            sender_number: senderNumber,
-            message_text: aiResponse,
+          await DatabaseService.saveMessage({
+            user_id: currentUser.id,
+            content: aiResponse.text,
             message_type: 'sent',
-            bot_user_id: currentUser.id
+            timestamp: new Date()
           });
         }
       } catch (aiError) {
