@@ -1,4 +1,3 @@
-
 import makeWASocket, { 
   ConnectionState, 
   DisconnectReason, 
@@ -16,13 +15,12 @@ import AIService from './AIService';
 import AudioService from './AudioService';
 
 export class WhatsAppService {
-  private socket: any;
+  private socket: ReturnType<typeof makeWASocket> | null = null;
   private isConnected = false;
   private currentUser: any = null;
   private sessionPath = path.join(process.cwd(), 'sessions');
 
   constructor() {
-    // Ensure sessions directory exists
     if (!fs.existsSync(this.sessionPath)) {
       fs.mkdirSync(this.sessionPath, { recursive: true });
     }
@@ -31,20 +29,15 @@ export class WhatsAppService {
   async initialize() {
     try {
       logger.info('Initializing WhatsApp service...');
-      
       await DatabaseService.updateBotStatus('connecting');
-      
       const { state, saveCreds } = await useMultiFileAuthState(this.sessionPath);
-
       this.socket = makeWASocket({
         auth: state,
-        printQRInTerminal: false, // We'll handle QR code manually
+        printQRInTerminal: false,
         logger: logger.child({ module: 'baileys' }),
         browser: ['WhatsApp AI Bot', 'Chrome', '1.0.0']
       });
-
       this.setupEventHandlers(saveCreds);
-      
     } catch (error) {
       logger.error('Error initializing WhatsApp service:', error);
       await DatabaseService.updateBotStatus('error');
@@ -52,8 +45,9 @@ export class WhatsAppService {
   }
 
   private setupEventHandlers(saveCreds: () => Promise<void>) {
-    // Connection state updates
-    this.socket.ev.on('connection.update', async (update: ConnectionState) => {
+    if (!this.socket) return;
+
+    this.socket.ev.on('connection.update', async (update: Partial<ConnectionState>) => {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
@@ -64,10 +58,9 @@ export class WhatsAppService {
 
       if (connection === 'close') {
         const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
-        
         if (shouldReconnect) {
           logger.info('Connection closed, reconnecting...');
-          this.initialize();
+          await this.initialize();
         } else {
           logger.info('Logged out, stopping bot');
           await DatabaseService.updateBotStatus('offline');
@@ -78,8 +71,12 @@ export class WhatsAppService {
         logger.info('WhatsApp connected successfully!');
         this.isConnected = true;
         await DatabaseService.updateBotStatus('online');
-        
-        // Get connected user info
+
+        if (!this.socket) {
+          logger.error('Socket não inicializado');
+          return;
+        }
+
         const userInfo = this.socket.user;
         if (userInfo) {
           const user = await DatabaseService.findOrCreateUser(
@@ -95,13 +92,10 @@ export class WhatsAppService {
       }
     });
 
-    // Save credentials when updated
     this.socket.ev.on('creds.update', saveCreds);
 
-    // Handle incoming messages
     this.socket.ev.on('messages.upsert', async (messageUpdate: any) => {
       const { messages, type } = messageUpdate;
-      
       if (type === 'notify') {
         for (const message of messages) {
           await this.handleIncomingMessage(message);
@@ -118,19 +112,16 @@ export class WhatsAppService {
       const isFromMe = messageKey.fromMe;
       const remoteJid = messageKey.remoteJid;
 
-      // Skip messages from self and groups
       if (isFromMe || remoteJid?.includes('@g.us')) return;
 
       let messageContent = '';
       let audioTranscript = '';
 
-      // Extract message content
-      if (message.message.conversation) {
+      if ('conversation' in message.message && message.message.conversation) {
         messageContent = message.message.conversation;
-      } else if (message.message.extendedTextMessage?.text) {
+      } else if ('extendedTextMessage' in message.message && message.message.extendedTextMessage?.text) {
         messageContent = message.message.extendedTextMessage.text;
-      } else if (message.message.audioMessage) {
-        // Handle audio message
+      } else if ('audioMessage' in message.message) {
         try {
           const audioBuffer = await downloadMediaMessage(
             message,
@@ -138,10 +129,9 @@ export class WhatsAppService {
             {},
             {
               logger: logger.child({ module: 'media-download' }),
-              reuploadRequest: this.socket.updateMediaMessage
+              reuploadRequest: this.socket!.updateMediaMessage
             }
           );
-          
           audioTranscript = await AudioService.transcribeAudio(audioBuffer as Buffer);
           messageContent = audioTranscript;
           logger.info(`Audio transcribed: ${audioTranscript}`);
@@ -153,17 +143,15 @@ export class WhatsAppService {
 
       if (!messageContent.trim()) return;
 
-      // Save incoming message
       await DatabaseService.saveMessage({
         user_id: this.currentUser.id,
         content: messageContent,
         message_type: 'incoming',
         audio_transcript: audioTranscript || undefined,
-        timestamp: new Date(message.messageTimestamp! * 1000).toISOString(),
+        timestamp: new Date(Number(message.messageTimestamp) * 1000).toISOString(),
         processed: false
       });
 
-      // Generate AI response
       await this.generateAndSendResponse(messageContent, remoteJid!);
 
     } catch (error) {
@@ -172,27 +160,20 @@ export class WhatsAppService {
   }
 
   private async generateAndSendResponse(messageContent: string, chatId: string) {
-    try {
-      if (!this.currentUser) return;
+    if (!this.currentUser || !this.socket) return;
 
-      // Get user learning data
+    try {
       const learningData = await DatabaseService.getUserLearningData(this.currentUser.id);
-      
-      // Get conversation history (last 10 messages)
-      // Note: This would need a database query to get recent messages
       const conversationHistory: string[] = [];
 
-      // Generate AI response
       const aiResponse = await AIService.generateResponse(
         messageContent,
         learningData || undefined,
         conversationHistory
       );
 
-      // Send response
       await this.socket.sendMessage(chatId, { text: aiResponse.text });
 
-      // Save outgoing message
       await DatabaseService.saveMessage({
         user_id: this.currentUser.id,
         content: aiResponse.text,
@@ -205,8 +186,6 @@ export class WhatsAppService {
 
     } catch (error) {
       logger.error('Error generating/sending response:', error);
-      
-      // Send fallback message
       try {
         await this.socket.sendMessage(chatId, { 
           text: 'Desculpe, ocorreu um erro. Tente novamente em alguns instantes.' 
