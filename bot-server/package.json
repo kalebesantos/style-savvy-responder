@@ -8,7 +8,9 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "npm run build && node dist/index.js",
-    "clean": "rm -rf dist sessions"
+    "clean": "rm -rf dist sessions",
+    "clear-session": "npm run clean && echo 'Session cleared! Run npm start to reconnect.'",
+    "logs": "tail -f logs/bot.log"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
