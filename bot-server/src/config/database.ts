@@ -7,8 +7,8 @@ class DatabaseService {
     try {
       await supabase.from('bot_status').upsert({
         id: 1,
-        status,
-        qr_code,
+        bot_status: status,        // campo corrigido para 'bot_status'
+        last_qr_code: qr_code,     // campo corrigido para 'last_qr_code'
         updated_at: new Date().toISOString()
       });
     } catch (error) {
@@ -19,7 +19,7 @@ class DatabaseService {
   async findOrCreateUser(phone: string, name?: string): Promise<WhatsAppUser | null> {
     try {
       const { data: existing, error } = await supabase
-        .from('whatsapp_users')
+        .from<WhatsAppUser>('whatsapp_users')
         .select('*')
         .eq('phone_number', phone)
         .single();
@@ -27,20 +27,21 @@ class DatabaseService {
       if (existing) return existing;
 
       const { data: created, error: insertError } = await supabase
-        .from('whatsapp_users')
+        .from<WhatsAppUser>('whatsapp_users')
         .insert([{ phone_number: phone, display_name: name || '' }])
         .select()
         .single();
 
       if (insertError) throw insertError;
-      return created;
+      return created ?? null;
     } catch (error) {
       logger.error('Erro ao buscar/criar usuário:', error);
       return null;
     }
   }
 
-  async setCurrentUser(userId: number) {
+  // Aqui mudou para string, pois user.id é string
+  async setCurrentUser(userId: string) {
     try {
       await supabase.from('bot_status').update({
         current_user_id: userId
@@ -50,18 +51,19 @@ class DatabaseService {
     }
   }
 
-  async saveMessage(message: ConversationMessage) {
+  async saveMessage(message: Omit<ConversationMessage, 'id' | 'created_at'>) {
     try {
+      // Omito os campos id e created_at pois Supabase cria automaticamente
       await supabase.from('messages').insert([message]);
     } catch (error) {
       logger.error('Erro ao salvar mensagem:', error);
     }
   }
 
-  async getUserLearningData(userId: number): Promise<UserLearningData | null> {
+  async getUserLearningData(userId: string): Promise<UserLearningData | null> {
     try {
       const { data, error } = await supabase
-        .from('user_learning')
+        .from<UserLearningData>('user_learning')
         .select('*')
         .eq('user_id', userId)
         .single();
@@ -77,7 +79,7 @@ class DatabaseService {
   async getBotConfig(): Promise<BotConfig | null> {
     try {
       const { data, error } = await supabase
-        .from('bot_config')
+        .from<BotConfig>('bot_config')
         .select('*')
         .limit(1)
         .single();
