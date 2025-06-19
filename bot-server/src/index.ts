@@ -4,7 +4,6 @@ import logger from './utils/logger';
 import WhatsAppService from './services/WhatsAppService';
 import AIService from './services/AIService';
 import AudioService from './services/AudioService';
-
 // Load environment variables
 dotenv.config();
 
