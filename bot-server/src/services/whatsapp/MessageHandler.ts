@@ -1,4 +1,3 @@
-
 import logger from '../../utils/logger';
 import DatabaseService from '../../config/database';
 import AIService from '../AIService';
@@ -15,7 +14,7 @@ export class MessageHandler {
 
       const messageText = this.extractMessageText(message);
       const senderNumber = message.key.remoteJid?.split('@')[0];
-      
+
       if (!messageText || !senderNumber) {
         logger.warn('Invalid message format');
         return;
@@ -27,8 +26,8 @@ export class MessageHandler {
       await DatabaseService.saveMessage({
         user_id: currentUser.id,
         content: messageText,
-        message_type: 'received',
-        timestamp: new Date()
+        message_type: 'incoming',   // corrigido: 'received' → 'incoming'
+        timestamp: new Date().toISOString()  // corrigido: Date → string ISO
       });
 
       // Process with AI if available
@@ -36,13 +35,13 @@ export class MessageHandler {
         const aiResponse = await AIService.generateResponse(messageText);
         if (aiResponse && aiResponse.text) {
           await socket.sendMessage(message.key.remoteJid, { text: aiResponse.text });
-          
+
           // Store AI response
           await DatabaseService.saveMessage({
             user_id: currentUser.id,
             content: aiResponse.text,
-            message_type: 'sent',
-            timestamp: new Date()
+            message_type: 'outgoing',  // corrigido: 'sent' → 'outgoing'
+            timestamp: new Date().toISOString()  // corrigido: Date → string ISO
           });
         }
       } catch (aiError) {
