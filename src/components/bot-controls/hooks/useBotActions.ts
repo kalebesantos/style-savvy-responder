@@ -1,7 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { BotService } from "@/services/botService";
 
 interface UseBotActionsProps {
   onStatusChange?: (status: 'online' | 'offline' | 'connecting' | 'error') => void;
@@ -11,60 +12,59 @@ interface UseBotActionsProps {
 export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Poll bot status every 3 seconds
+  useEffect(() => {
+    const pollStatus = async () => {
+      try {
+        const status = await BotService.getBotStatus();
+        onStatusChange && onStatusChange(status.status);
+        
+        if (status.qrCode && status.status === 'connecting') {
+          setQrCode(status.qrCode);
+          setShowQR(true);
+        } else if (status.status === 'online') {
+          setShowQR(false);
+          setQrCode(null);
+        }
+      } catch (error) {
+        console.error('Error polling bot status:', error);
+      }
+    };
+
+    // Poll immediately and then every 3 seconds
+    pollStatus();
+    const interval = setInterval(pollStatus, 3000);
+
+    return () => clearInterval(interval);
+  }, [onStatusChange]);
 
   const handleStartBot = async () => {
     setIsLoading(true);
     try {
-      // Get the first bot config
-      const { data: configData } = await supabase
-        .from('bot_config')
-        .select('id')
-        .limit(1)
-        .single();
-
-      if (configData) {
-        // Update bot status to connecting
-        await supabase
-          .from('bot_config')
-          .update({ bot_status: 'connecting' })
-          .eq('id', configData.id);
-
-        onStatusChange && onStatusChange('connecting');
-        
-        // Simulate QR code generation
-        setShowQR(true);
-        
+      const result = await BotService.startBot();
+      
+      if (result.success) {
         toast({
           title: "Iniciando bot...",
-          description: "Escaneie o QR code com o WhatsApp",
+          description: "Aguarde a geração do QR code",
         });
-
-        // Simulate connection after 5 seconds
-        setTimeout(async () => {
-          await supabase
-            .from('bot_config')
-            .update({ 
-              bot_status: 'online',
-              last_qr_code: 'mock-qr-code-data'
-            })
-            .eq('id', configData.id);
-            
-          onStatusChange && onStatusChange('online');
-          setShowQR(false);
-          
-          toast({
-            title: "Bot conectado!",
-            description: "WhatsApp conectado com sucesso",
-          });
-        }, 5000);
+      } else {
+        toast({
+          title: "Erro ao iniciar",
+          description: result.message || "Falha ao iniciar o bot",
+          variant: "destructive",
+        });
       }
 
     } catch (error) {
       console.error('Error starting bot:', error);
       toast({
         title: "Erro ao iniciar",
-        description: "Falha ao iniciar o bot",
+        description: "Erro de comunicação com o servidor",
         variant: "destructive",
       });
     } finally {
@@ -75,24 +75,21 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
   const handleStopBot = async () => {
     setIsLoading(true);
     try {
-      const { data: configData } = await supabase
-        .from('bot_config')
-        .select('id')
-        .limit(1)
-        .single();
-
-      if (configData) {
-        await supabase
-          .from('bot_config')
-          .update({ bot_status: 'offline' })
-          .eq('id', configData.id);
-
-        onStatusChange && onStatusChange('offline');
+      const result = await BotService.stopBot();
+      
+      if (result.success) {
         setShowQR(false);
+        setQrCode(null);
         
         toast({
           title: "Bot desconectado",
           description: "WhatsApp desconectado com sucesso",
+        });
+      } else {
+        toast({
+          title: "Erro ao parar",
+          description: result.message || "Falha ao parar o bot",
+          variant: "destructive",
         });
       }
 
@@ -100,7 +97,7 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
       console.error('Error stopping bot:', error);
       toast({
         title: "Erro ao parar",
-        description: "Falha ao parar o bot",
+        description: "Erro de comunicação com o servidor",
         variant: "destructive",
       });
     } finally {
@@ -113,28 +110,30 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
     
     setIsLoading(true);
     try {
-      // Reset learning data
-      await supabase
-        .from('user_learning_data')
-        .update({
-          message_count: 0,
-          vocabulary_size: 0,
-          learning_progress: 0,
-          conversation_patterns: {},
-          style_analysis: {}
-        })
-        .eq('user_id', currentUser.id);
-
-      toast({
-        title: "Aprendizado resetado",
-        description: "Dados de aprendizado foram limpos",
-      });
+      // Clear session and reset learning
+      const result = await BotService.clearSession();
+      
+      if (result.success) {
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries();
+        
+        toast({
+          title: "Sessão e aprendizado resetados",
+          description: "Dados limpos com sucesso",
+        });
+      } else {
+        toast({
+          title: "Erro ao resetar",
+          description: result.message || "Falha ao limpar dados",
+          variant: "destructive",
+        });
+      }
 
     } catch (error) {
-      console.error('Error resetting learning:', error);
+      console.error('Error resetting:', error);
       toast({
         title: "Erro ao resetar",
-        description: "Falha ao limpar dados de aprendizado",
+        description: "Erro de comunicação com o servidor",
         variant: "destructive",
       });
     } finally {
@@ -149,6 +148,7 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
   return {
     isLoading,
     showQR,
+    qrCode,
     handleStartBot,
     handleStopBot,
     handleResetLearning,

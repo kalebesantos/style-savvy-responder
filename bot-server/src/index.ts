@@ -1,14 +1,52 @@
 
 import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
 import logger from './utils/logger';
 import WhatsAppService from './services/WhatsAppService';
 import AIService from './services/AIService';
 import AudioService from './services/AudioService';
+import apiRoutes from './api/routes';
 
 // Load environment variables
 dotenv.config();
 
 class BotServer {
+  private app: express.Application;
+  private server: any;
+
+  constructor() {
+    this.app = express();
+    this.setupMiddleware();
+    this.setupRoutes();
+  }
+
+  private setupMiddleware() {
+    // CORS para permitir requisições do frontend
+    this.app.use(cors({
+      origin: ['http://localhost:5173', 'http://localhost:3000'], // Vite e React dev servers
+      credentials: true
+    }));
+
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+  }
+
+  private setupRoutes() {
+    // Health check
+    this.app.get('/health', (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+
+    // API routes
+    this.app.use(apiRoutes);
+
+    // 404 handler
+    this.app.use('*', (req, res) => {
+      res.status(404).json({ error: 'Route not found' });
+    });
+  }
+
   async start() {
     try {
       logger.info('🚀 Starting WhatsApp AI Bot Server...');
@@ -16,6 +54,12 @@ class BotServer {
 
       // Check dependencies
       await this.checkDependencies();
+
+      // Start HTTP server
+      const PORT = process.env.PORT || 3001;
+      this.server = this.app.listen(PORT, () => {
+        logger.info(`🌐 API server running on port ${PORT}`);
+      });
 
       // Initialize WhatsApp service
       await WhatsAppService.initialize();
@@ -26,6 +70,7 @@ class BotServer {
       logger.info('✅ Bot server started successfully!');
       logger.info('📱 Waiting for WhatsApp connection...');
       logger.info('💡 If connection fails, try clearing session with: npm run clear-session');
+      logger.info(`🔗 API available at: http://localhost:${PORT}`);
       
     } catch (error) {
       logger.error('❌ Failed to start bot server:', error);
@@ -80,8 +125,11 @@ class BotServer {
       logger.info(`📴 Received ${signal}, shutting down gracefully...`);
       
       try {
+        if (this.server) {
+          this.server.close();
+        }
         await WhatsAppService.disconnect();
-        logger.info('✅ WhatsApp service disconnected');
+        logger.info('✅ Server shutdown complete');
         process.exit(0);
       } catch (error) {
         logger.error('Error during shutdown:', error);

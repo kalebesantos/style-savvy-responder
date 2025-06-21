@@ -16,6 +16,7 @@ const BotControls = ({ botStatus, onStatusChange, currentUser }: BotControlsProp
   const {
     isLoading,
     showQR,
+    qrCode,
     handleStartBot,
     handleStopBot,
     handleResetLearning,
@@ -29,7 +30,7 @@ const BotControls = ({ botStatus, onStatusChange, currentUser }: BotControlsProp
         <BotStatusBadge botStatus={botStatus} />
       </div>
 
-      <QRCodeDisplay showQR={showQR} />
+      <QRCodeDisplay showQR={showQR} qrCode={qrCode} />
 
       <BotActionButtons
         botStatus={botStatus}
