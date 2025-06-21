@@ -1,3 +1,4 @@
+
 import logger from '../../utils/logger';
 import DatabaseService from '../../config/database';
 import AIService from '../AIService';
@@ -26,8 +27,9 @@ export class MessageHandler {
       await DatabaseService.saveMessage({
         user_id: currentUser.id,
         content: messageText,
-        message_type: 'incoming',   // corrigido: 'received' → 'incoming'
-        timestamp: new Date().toISOString()  // corrigido: Date → string ISO
+        message_type: 'incoming',
+        timestamp: new Date().toISOString(),
+        processed: false
       });
 
       // Process with AI if available
@@ -40,8 +42,9 @@ export class MessageHandler {
           await DatabaseService.saveMessage({
             user_id: currentUser.id,
             content: aiResponse.text,
-            message_type: 'outgoing',  // corrigido: 'sent' → 'outgoing'
-            timestamp: new Date().toISOString()  // corrigido: Date → string ISO
+            message_type: 'outgoing',
+            timestamp: new Date().toISOString(),
+            processed: true
           });
         }
       } catch (aiError) {
