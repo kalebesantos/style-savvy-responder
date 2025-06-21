@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import StatusCard from '@/components/StatusCard';
 import FileUpload from '@/components/FileUpload';
 import BotControls from '@/components/BotControls';
 import LearningStats from '@/components/LearningStats';
+import Terminal from '@/components/Terminal';
 
 const Index = () => {
   const [currentBotStatus, setCurrentBotStatus] = useState<'online' | 'offline' | 'connecting' | 'error'>('offline');
@@ -216,6 +216,9 @@ const Index = () => {
           </p>
         </div>
       </div>
+      
+      {/* Terminal Component */}
+      <Terminal />
     </div>
   );
 };
