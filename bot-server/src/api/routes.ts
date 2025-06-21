@@ -1,5 +1,5 @@
 
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import WhatsAppService from '../services/WhatsAppService';
 import DatabaseService from '../config/database';
@@ -8,7 +8,7 @@ import logger from '../utils/logger';
 const router = express.Router();
 
 // Bot control routes
-router.post('/api/bot/start', async (req, res) => {
+router.post('/api/bot/start', async (req: Request, res: Response) => {
   try {
     logger.info('Starting bot via API...');
     
@@ -28,7 +28,7 @@ router.post('/api/bot/start', async (req, res) => {
   }
 });
 
-router.post('/api/bot/stop', async (req, res) => {
+router.post('/api/bot/stop', async (req: Request, res: Response) => {
   try {
     logger.info('Stopping bot via API...');
     
@@ -47,7 +47,7 @@ router.post('/api/bot/stop', async (req, res) => {
   }
 });
 
-router.get('/api/bot/status', async (req, res) => {
+router.get('/api/bot/status', async (req: Request, res: Response) => {
   try {
     const status = WhatsAppService.getConnectionStatus();
     const botConfig = await DatabaseService.getBotConfig();
@@ -65,7 +65,7 @@ router.get('/api/bot/status', async (req, res) => {
   }
 });
 
-router.post('/api/bot/clear-session', async (req, res) => {
+router.post('/api/bot/clear-session', async (req: Request, res: Response) => {
   try {
     logger.info('Clearing session via API...');
     
