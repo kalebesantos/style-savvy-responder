@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
-  currentUserId?: number;
+  currentUserId?: string;  // Changed from number to string
   onUploadComplete?: () => void;
 }
 
@@ -44,8 +44,8 @@ const FileUpload = ({ currentUserId, onUploadComplete }: FileUploadProps) => {
           
           messages.push({
             timestamp: timestamp.toISOString(),
-            contact: contact.trim(),
-            message: message.trim(),
+            content: message.trim(),
+            message_type: 'received',
             user_id: currentUserId
           });
         }
@@ -57,13 +57,13 @@ const FileUpload = ({ currentUserId, onUploadComplete }: FileUploadProps) => {
         throw new Error('Nenhuma mensagem válida encontrada no arquivo');
       }
 
-      // Save to database in batches
+      // Save to conversation_history table (not chat_history)
       const batchSize = 100;
       for (let i = 0; i < messages.length; i += batchSize) {
         const batch = messages.slice(i, i + batchSize);
         
         const { error } = await supabase
-          .from('chat_history')
+          .from('conversation_history')  // Fixed table name
           .insert(batch);
         
         if (error) throw error;
@@ -75,10 +75,10 @@ const FileUpload = ({ currentUserId, onUploadComplete }: FileUploadProps) => {
       const { error: learningError } = await supabase
         .from('user_learning_data')
         .upsert({
-          user_id: currentUserId,
+          user_id: currentUserId,  // This is already a string
           message_count: messages.length,
           vocabulary_size: new Set(
-            messages.flatMap(m => m.message.toLowerCase().split(/\s+/))
+            messages.flatMap(m => m.content.toLowerCase().split(/\s+/))
           ).size,
           learning_progress: Math.min(messages.length / 100 * 10, 100),
           updated_at: new Date().toISOString()
