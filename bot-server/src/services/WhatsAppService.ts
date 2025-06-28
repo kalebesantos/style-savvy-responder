@@ -38,8 +38,8 @@ export class WhatsAppService {
   }
 
   private async handleQRCode(qr: string) {
-    // QR code is already logged to console by ConnectionManager
-    // Database is already updated by ConnectionManager
+    logger.info('QR Code generated for frontend');
+    // QR code já foi salvo no banco pelo ConnectionManager
   }
 
   private async handleConnectionUpdate(update: Partial<ConnectionState>) {
@@ -52,14 +52,18 @@ export class WhatsAppService {
 
       const userInfo = socket.user;
       if (userInfo) {
+        logger.info('Creating/updating user in database...');
         const user = await DatabaseService.findOrCreateUser(
           userInfo.id.split(':')[0],
-          userInfo.name
+          userInfo.name || userInfo.id.split(':')[0]
         );
         if (user && user.id) {
           this.currentUser = user;
           await DatabaseService.setCurrentUser(user.id);
           logger.info(`Connected as: ${user.display_name || user.phone_number}`);
+          
+          // Garantir que o status seja atualizado no banco
+          await DatabaseService.updateBotStatus('online', null);
         }
       }
     }
@@ -68,13 +72,15 @@ export class WhatsAppService {
   async disconnect() {
     await this.connectionManager.disconnect();
     this.currentUser = null;
-    await DatabaseService.updateBotStatus('offline');
+    await DatabaseService.updateBotStatus('offline', null);
+    await DatabaseService.setCurrentUser(null);
   }
 
   async clearSession() {
     await this.connectionManager.clearSession();
     this.currentUser = null;
-    await DatabaseService.updateBotStatus('offline');
+    await DatabaseService.updateBotStatus('offline', null);
+    await DatabaseService.setCurrentUser(null);
   }
 
   getConnectionStatus() {

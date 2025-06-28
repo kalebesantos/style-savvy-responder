@@ -29,19 +29,21 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
         if (status.status === 'connecting' && status.qrCode) {
           setQrCode(status.qrCode);
           setShowQR(true);
-          console.log('QR code received:', status.qrCode.substring(0, 50) + '...');
+          console.log('QR code received and displayed');
         } else if (status.status === 'online') {
-          // Quando conectado, esconder QR code
+          // Quando conectado, esconder QR code e invalidar queries para atualizar dados
           setShowQR(false);
           setQrCode(null);
-          console.log('Bot connected, hiding QR code');
-        } else if (status.status === 'offline') {
-          // Quando offline, limpar QR code
+          queryClient.invalidateQueries();
+          console.log('Bot connected, hiding QR code and refreshing data');
+        } else if (status.status === 'offline' || status.status === 'error') {
+          // Quando offline ou erro, limpar QR code
           setShowQR(false);
           setQrCode(null);
         }
       } catch (error) {
         console.error('Error polling bot status:', error);
+        onStatusChange && onStatusChange('error');
       }
     };
 
@@ -50,7 +52,7 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
     const interval = setInterval(pollStatus, 3000);
 
     return () => clearInterval(interval);
-  }, [onStatusChange]);
+  }, [onStatusChange, queryClient]);
 
   const handleStartBot = async () => {
     setIsLoading(true);
@@ -64,10 +66,11 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
           description: "Aguarde a geração do QR code",
         });
         
-        // Forçar uma verificação de status imediata
+        // Forçar uma verificação de status imediata após 2 segundos
         setTimeout(async () => {
           try {
             const status = await BotService.getBotStatus();
+            console.log('Immediate status check:', status);
             if (status.status === 'connecting' && status.qrCode) {
               setQrCode(status.qrCode);
               setShowQR(true);
@@ -75,7 +78,7 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
           } catch (error) {
             console.error('Error getting immediate status:', error);
           }
-        }, 1000);
+        }, 2000);
         
       } else {
         toast({
@@ -173,8 +176,8 @@ export const useBotActions = ({ onStatusChange, currentUser }: UseBotActionsProp
   };
 
   const handleToggleQR = () => {
-    // Só permitir toggle se houver QR code ou se estiver conectando
-    if (qrCode || showQR) {
+    // Só permitir toggle se houver QR code disponível
+    if (qrCode) {
       setShowQR(!showQR);
     } else {
       toast({

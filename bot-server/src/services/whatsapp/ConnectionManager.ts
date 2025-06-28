@@ -65,9 +65,11 @@ export class ConnectionManager {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
-        logger.info('QR Code generated');
+        logger.info('QR Code generated - updating database');
         QRCode.generate(qr, { small: true });
+        // Garantir que o QR code seja salvo no banco de dados
         await DatabaseService.updateBotStatus('connecting', qr);
+        logger.info('QR Code saved to database');
         onQRCode(qr);
       }
 
@@ -76,7 +78,8 @@ export class ConnectionManager {
       } else if (connection === 'open') {
         logger.info('✅ WhatsApp connected successfully!');
         this.reconnectAttempts = 0;
-        await DatabaseService.updateBotStatus('online');
+        // Limpar QR code quando conectado
+        await DatabaseService.updateBotStatus('online', null);
         onConnectionUpdate(update);
       } else if (connection === 'connecting') {
         logger.info('🔄 Connecting to WhatsApp...');
@@ -153,6 +156,10 @@ export class ConnectionManager {
         }
         logger.info('✅ Session cleared successfully');
       }
+      
+      // Limpar dados do banco também
+      await DatabaseService.updateBotStatus('offline', null);
+      await DatabaseService.setCurrentUser(null);
     } catch (error) {
       logger.error('Error clearing session:', error);
     }
@@ -165,6 +172,7 @@ export class ConnectionManager {
         this.socket = null;
         logger.info('📴 WhatsApp disconnected');
       }
+      await DatabaseService.updateBotStatus('offline', null);
     } catch (error) {
       logger.error('Error during disconnect:', error);
     }
