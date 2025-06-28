@@ -1,15 +1,14 @@
-
 import { supabase } from './supabaseClient';
 import { BotConfig, WhatsAppUser, ConversationMessage, UserLearningData } from '../types';
 import logger from '../utils/logger';
 
 class DatabaseService {
-  async updateBotStatus(status: string, qr_code?: string) {
+  async updateBotStatus(status: string, qr_code?: string | undefined) {
     try {
       await supabase.from('bot_status').upsert({
         id: 1,
         bot_status: status,        // campo corrigido para 'bot_status'
-        last_qr_code: qr_code,     // campo corrigido para 'last_qr_code'
+        last_qr_code: qr_code || null,     // campo corrigido para 'last_qr_code'
         updated_at: new Date().toISOString()
       });
     } catch (error) {
@@ -41,11 +40,11 @@ class DatabaseService {
     }
   }
 
-  // Aqui mudou para string, pois user.id é string
-  async setCurrentUser(userId: string) {
+  // Aqui mudou para string | undefined
+  async setCurrentUser(userId: string | undefined) {
     try {
       await supabase.from('bot_status').update({
-        current_user_id: userId
+        current_user_id: userId || null
       }).eq('id', 1);
     } catch (error) {
       logger.error('Erro ao definir usuário atual:', error);

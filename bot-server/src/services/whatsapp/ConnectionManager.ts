@@ -1,4 +1,3 @@
-
 import makeWASocket, { 
   ConnectionState, 
   DisconnectReason, 
@@ -79,7 +78,7 @@ export class ConnectionManager {
         logger.info('✅ WhatsApp connected successfully!');
         this.reconnectAttempts = 0;
         // Limpar QR code quando conectado
-        await DatabaseService.updateBotStatus('online', null);
+        await DatabaseService.updateBotStatus('online', undefined);
         onConnectionUpdate(update);
       } else if (connection === 'connecting') {
         logger.info('🔄 Connecting to WhatsApp...');
@@ -158,8 +157,8 @@ export class ConnectionManager {
       }
       
       // Limpar dados do banco também
-      await DatabaseService.updateBotStatus('offline', null);
-      await DatabaseService.setCurrentUser(null);
+      await DatabaseService.updateBotStatus('offline', undefined);
+      await DatabaseService.setCurrentUser(undefined);
     } catch (error) {
       logger.error('Error clearing session:', error);
     }
@@ -172,7 +171,7 @@ export class ConnectionManager {
         this.socket = null;
         logger.info('📴 WhatsApp disconnected');
       }
-      await DatabaseService.updateBotStatus('offline', null);
+      await DatabaseService.updateBotStatus('offline', undefined);
     } catch (error) {
       logger.error('Error during disconnect:', error);
     }

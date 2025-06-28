@@ -63,7 +63,7 @@ export class WhatsAppService {
           logger.info(`Connected as: ${user.display_name || user.phone_number}`);
           
           // Garantir que o status seja atualizado no banco
-          await DatabaseService.updateBotStatus('online', null);
+          await DatabaseService.updateBotStatus('online', undefined);
         }
       }
     }
@@ -72,15 +72,15 @@ export class WhatsAppService {
   async disconnect() {
     await this.connectionManager.disconnect();
     this.currentUser = null;
-    await DatabaseService.updateBotStatus('offline', null);
-    await DatabaseService.setCurrentUser(null);
+    await DatabaseService.updateBotStatus('offline', undefined);
+    await DatabaseService.setCurrentUser(undefined);
   }
 
   async clearSession() {
     await this.connectionManager.clearSession();
     this.currentUser = null;
-    await DatabaseService.updateBotStatus('offline', null);
-    await DatabaseService.setCurrentUser(null);
+    await DatabaseService.updateBotStatus('offline', undefined);
+    await DatabaseService.setCurrentUser(undefined);
   }
 
   getConnectionStatus() {
