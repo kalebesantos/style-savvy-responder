@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface LogEntry {
   timestamp: string;
@@ -10,81 +10,78 @@ interface LogEntry {
 export const useBotLogs = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const addLog = (level: LogEntry['level'], message: string) => {
+    const newLog: LogEntry = {
+      timestamp: new Date().toLocaleTimeString('pt-BR'),
+      level,
+      message
+    };
+    setLogs(prev => [...prev.slice(-99), newLog]);
+  };
+
+  const connectToLogs = () => {
+    try {
+      // Close existing connection
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
+      eventSourceRef.current = new EventSource('http://localhost:3001/api/logs/stream');
+      
+      eventSourceRef.current.onopen = () => {
+        setIsConnected(true);
+        addLog('info', '🔗 Conectado aos logs do servidor');
+        
+        // Clear any reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+      };
+
+      eventSourceRef.current.onmessage = (event) => {
+        try {
+          const logData = JSON.parse(event.data);
+          setLogs(prev => [...prev.slice(-99), logData]);
+        } catch (error) {
+          console.error('Erro ao processar log:', error);
+        }
+      };
+
+      eventSourceRef.current.onerror = () => {
+        setIsConnected(false);
+        addLog('error', '❌ Conexão com logs perdida');
+        
+        // Attempt to reconnect after 5 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          addLog('info', '🔄 Tentando reconectar...');
+          connectToLogs();
+        }, 5000);
+      };
+
+    } catch (error) {
+      setIsConnected(false);
+      addLog('error', '❌ Erro ao conectar com servidor de logs');
+    }
+  };
 
   useEffect(() => {
-    let eventSource: EventSource | null = null;
-
-    const connectToLogs = () => {
-      try {
-        // Tentar conectar com os logs do servidor
-        eventSource = new EventSource('http://localhost:3001/api/logs/stream');
-        
-        eventSource.onopen = () => {
-          setIsConnected(true);
-          addLog('info', '🔗 Conectado aos logs do servidor');
-        };
-
-        eventSource.onmessage = (event) => {
-          try {
-            const logData = JSON.parse(event.data);
-            setLogs(prev => [...prev.slice(-99), logData]);
-          } catch (error) {
-            console.error('Erro ao processar log:', error);
-          }
-        };
-
-        eventSource.onerror = () => {
-          setIsConnected(false);
-          addLog('error', '❌ Conexão com logs perdida');
-        };
-
-      } catch (error) {
-        setIsConnected(false);
-        addLog('error', '❌ Erro ao conectar com servidor de logs');
-      }
-    };
-
-    const addLog = (level: LogEntry['level'], message: string) => {
-      const newLog: LogEntry = {
-        timestamp: new Date().toLocaleTimeString(),
-        level,
-        message
-      };
-      setLogs(prev => [...prev.slice(-99), newLog]);
-    };
-
-    // Logs iniciais simulados
+    // Initial logs
     addLog('info', '🚀 Iniciando terminal...');
     addLog('info', '🔍 Tentando conectar com servidor...');
 
-    // Tentar conectar
+    // Start connection
     connectToLogs();
 
-    // Fallback para logs simulados se não conseguir conectar
-    const fallbackInterval = setTimeout(() => {
-      if (!isConnected) {
-        addLog('warn', '⚠️  Usando logs simulados (servidor não conectado)');
-        
-        const simulateInterval = setInterval(() => {
-          const randomLogs = [
-            { level: 'info' as const, message: '📊 Health check simulado' },
-            { level: 'debug' as const, message: '🔍 Verificando conexão...' },
-            { level: 'warn' as const, message: '⚠️  Modo offline - logs simulados' }
-          ];
-          
-          const randomLog = randomLogs[Math.floor(Math.random() * randomLogs.length)];
-          addLog(randomLog.level, randomLog.message);
-        }, 10000);
-
-        return () => clearInterval(simulateInterval);
-      }
-    }, 3000);
-
     return () => {
-      if (eventSource) {
-        eventSource.close();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
       }
-      clearTimeout(fallbackInterval);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -92,5 +89,10 @@ export const useBotLogs = () => {
     setLogs([]);
   };
 
-  return { logs, isConnected, clearLogs };
+  const reconnect = () => {
+    addLog('info', '🔄 Reconectando manualmente...');
+    connectToLogs();
+  };
+
+  return { logs, isConnected, clearLogs, reconnect };
 };

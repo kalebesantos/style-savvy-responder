@@ -3,11 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Terminal as TerminalIcon, X, Minus, Wifi, WifiOff } from 'lucide-react';
+import { Terminal as TerminalIcon, X, Minus, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useBotLogs } from '@/hooks/useBotLogs';
 
 const Terminal = () => {
-  const { logs, isConnected, clearLogs } = useBotLogs();
+  const { logs, isConnected, clearLogs, reconnect } = useBotLogs();
   const [isMinimized, setIsMinimized] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -45,6 +45,17 @@ const Terminal = () => {
             )}
           </CardTitle>
           <div className="flex gap-1">
+            {!isConnected && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                onClick={reconnect}
+                title="Reconectar"
+              >
+                <RefreshCw className="w-3 h-3" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -101,7 +112,7 @@ const Terminal = () => {
               Limpar
             </Button>
             <div className="flex items-center text-xs">
-              <span className={`w-2 h-2 rounded-full mr-1 ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></span>
+              <span className={`w-2 h-2 rounded-full mr-1 animate-pulse ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></span>
               <span className="text-gray-400">
                 {isConnected ? 'Online' : 'Offline'}
               </span>

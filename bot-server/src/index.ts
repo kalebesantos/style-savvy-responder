@@ -1,12 +1,11 @@
-
 import dotenv from 'dotenv';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import logger from './utils/logger';
+import logger, { setBroadcastFunction } from './utils/logger';
 import WhatsAppService from './services/WhatsAppService';
 import AIService from './services/AIService';
 import AudioService from './services/AudioService';
-import apiRoutes from './api/routes';
+import apiRoutes, { broadcastLog } from './api/routes';
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +18,9 @@ class BotServer {
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
+    
+    // Set broadcast function for logger
+    setBroadcastFunction(broadcastLog);
   }
 
   private setupMiddleware() {
