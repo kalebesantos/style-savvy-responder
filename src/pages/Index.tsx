@@ -56,7 +56,10 @@ const Index = () => {
       setLogs(history);
     });
 
-    return () => newSocket.close();
+    // Return cleanup function properly
+    return () => {
+      newSocket.close();
+    };
   }, []);
 
   // Status do bot
