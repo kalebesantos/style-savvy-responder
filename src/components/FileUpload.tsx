@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,10 +42,11 @@ const FileUpload = ({ currentUserId, onUploadComplete }: FileUploadProps) => {
           const timestamp = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time}:00`);
           
           messages.push({
-            timestamp: timestamp.toISOString(),
+            user_id: currentUserId,
             content: message.trim(),
-            message_type: 'received',
-            user_id: currentUserId
+            message_type: 'incoming',
+            timestamp: timestamp.toISOString(),
+            processed: false
           });
         }
       }
@@ -57,13 +57,13 @@ const FileUpload = ({ currentUserId, onUploadComplete }: FileUploadProps) => {
         throw new Error('Nenhuma mensagem válida encontrada no arquivo');
       }
 
-      // Save to conversation_history table (not chat_history)
+      // Save to messages table
       const batchSize = 100;
       for (let i = 0; i < messages.length; i += batchSize) {
         const batch = messages.slice(i, i + batchSize);
         
         const { error } = await supabase
-          .from('conversation_history')  // Fixed table name
+          .from('messages')
           .insert(batch);
         
         if (error) throw error;
