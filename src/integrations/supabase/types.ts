@@ -14,7 +14,7 @@ export type Database = {
           audio_enabled: boolean | null
           bot_status: string | null
           current_user_id: string | null
-          id: string
+          id: number
           last_qr_code: string | null
           learning_enabled: boolean | null
           model_name: string | null
@@ -24,7 +24,7 @@ export type Database = {
           audio_enabled?: boolean | null
           bot_status?: string | null
           current_user_id?: string | null
-          id?: string
+          id?: number
           last_qr_code?: string | null
           learning_enabled?: boolean | null
           model_name?: string | null
@@ -34,26 +34,17 @@ export type Database = {
           audio_enabled?: boolean | null
           bot_status?: string | null
           current_user_id?: string | null
-          id?: string
+          id?: number
           last_qr_code?: string | null
           learning_enabled?: boolean | null
           model_name?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "bot_config_current_user_id_fkey"
-            columns: ["current_user_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      conversation_history: {
+      messages: {
         Row: {
-          audio_transcript: string | null
-          content: string | null
+          content: string
           created_at: string
           id: string
           message_type: string
@@ -62,18 +53,16 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          audio_transcript?: string | null
-          content?: string | null
+          content: string
           created_at?: string
           id?: string
           message_type: string
           processed?: boolean | null
-          timestamp: string
+          timestamp?: string
           user_id?: string | null
         }
         Update: {
-          audio_transcript?: string | null
-          content?: string | null
+          content?: string
           created_at?: string
           id?: string
           message_type?: string
@@ -83,51 +72,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "conversation_history_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      uploaded_files: {
-        Row: {
-          created_at: string
-          file_size: number | null
-          file_type: string | null
-          filename: string
-          id: string
-          messages_extracted: number | null
-          processing_status: string | null
-          upload_path: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          file_size?: number | null
-          file_type?: string | null
-          filename: string
-          id?: string
-          messages_extracted?: number | null
-          processing_status?: string | null
-          upload_path?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          file_size?: number | null
-          file_type?: string | null
-          filename?: string
-          id?: string
-          messages_extracted?: number | null
-          processing_status?: string | null
-          upload_path?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "uploaded_files_user_id_fkey"
+            foreignKeyName: "messages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_users"
@@ -197,7 +142,7 @@ export type Database = {
           connected_at?: string | null
           created_at?: string
           display_name?: string | null
-          id?: string
+          id: string
           is_connected?: boolean | null
           last_activity?: string | null
           phone_number: string

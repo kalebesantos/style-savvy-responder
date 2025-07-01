@@ -1,5 +1,6 @@
+
 export interface BotConfig {
-  id: string;
+  id: number;
   bot_status: 'online' | 'offline' | 'connecting' | 'error';
   current_user_id?: string;
   last_qr_code?: string;
@@ -10,25 +11,24 @@ export interface BotConfig {
 }
 
 export interface WhatsAppUser {
-  id?: string;
+  id: string;
   phone_number: string;
   display_name?: string;
   is_connected: boolean;
   connected_at?: string;
   last_activity?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ConversationMessage {
-  id?: string;
+  id: string;
   user_id: string;
   content: string;
   message_type: 'incoming' | 'outgoing';
-  audio_transcript?: string;
   timestamp: string;
   processed: boolean;
-  created_at?: string;
+  created_at: string;
 }
 
 export interface UserLearningData {
@@ -46,6 +46,6 @@ export interface UserLearningData {
 
 export interface AIResponse {
   text: string;
-  confidence?: number;
-  processing_time?: number;
+  confidence: number;
+  learning_applied: boolean;
 }

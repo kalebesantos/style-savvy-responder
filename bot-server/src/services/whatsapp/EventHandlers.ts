@@ -1,7 +1,7 @@
 
 import { proto } from '@whiskeysockets/baileys';
-import logger from '../../utils/logger';
 import { MessageHandler } from './MessageHandler';
+import logger from '../../utils/logger';
 
 export class EventHandlers {
   private messageHandler: MessageHandler;
@@ -11,19 +11,50 @@ export class EventHandlers {
   }
 
   setupMessageHandlers(socket: any, getCurrentUser: () => any) {
-    socket.ev.on('messages.upsert', async (m: any) => {
-      const message = m.messages[0];
-      if (!message.key.fromMe && message.message) {
-        await this.messageHandler.handleMessage(socket, message, getCurrentUser());
+    // Handler para mensagens
+    socket.ev.on('messages.upsert', async (messageUpdate: any) => {
+      try {
+        const { messages } = messageUpdate;
+        
+        for (const message of messages) {
+          if (message.key.fromMe) continue; // Ignorar mensagens próprias
+          
+          const currentUser = getCurrentUser();
+          if (!currentUser) {
+            logger.warn('Usuário atual não definido, ignorando mensagem');
+            continue;
+          }
+
+          // Verificar se é mensagem de áudio
+          if (message.message?.audioMessage) {
+            await this.messageHandler.processAudioMessage(message, socket, currentUser);
+          } else {
+            await this.messageHandler.processMessage(message, socket, currentUser);
+          }
+        }
+      } catch (error) {
+        logger.error('Erro ao processar mensagens:', error);
       }
     });
 
-    socket.ev.on('messages.update', (messageUpdate: any) => {
-      logger.info('Message update received:', messageUpdate);
+    // Handler para atualizações de presença
+    socket.ev.on('presence.update', (update: any) => {
+      try {
+        logger.debug('Atualização de presença:', update);
+      } catch (error) {
+        logger.error('Erro ao processar atualização de presença:', error);
+      }
     });
 
-    socket.ev.on('presence.update', (presence: any) => {
-      logger.info('Presence update:', presence);
+    // Handler para recibos de leitura
+    socket.ev.on('message-receipt.update', (update: any) => {
+      try {
+        logger.debug('Recibo de mensagem:', update);
+      } catch (error) {
+        logger.error('Erro ao processar recibo de mensagem:', error);
+      }
     });
+
+    logger.info('✅ Event handlers configurados');
   }
 }

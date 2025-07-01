@@ -1,3 +1,4 @@
+
 import { supabase } from './supabaseClient';
 import { BotConfig, WhatsAppUser, ConversationMessage, UserLearningData } from '../types';
 import logger from '../utils/logger';
@@ -5,12 +6,11 @@ import logger from '../utils/logger';
 class DatabaseService {
   async updateBotStatus(status: string, qr_code?: string | undefined) {
     try {
-      await supabase.from('bot_status').upsert({
-        id: 1,
-        bot_status: status,        // campo corrigido para 'bot_status'
-        last_qr_code: qr_code || null,     // campo corrigido para 'last_qr_code'
+      await supabase.from('bot_config').update({
+        bot_status: status,
+        last_qr_code: qr_code || null,
         updated_at: new Date().toISOString()
-      });
+      }).eq('id', 1);
     } catch (error) {
       logger.error('Erro ao atualizar status do bot:', error);
     }
@@ -28,7 +28,11 @@ class DatabaseService {
 
       const { data: created, error: insertError } = await supabase
         .from('whatsapp_users')
-        .insert([{ phone_number: phone, display_name: name || '' }])
+        .insert([{ 
+          id: phone.replace(/\D/g, ''), // Use apenas números como ID
+          phone_number: phone, 
+          display_name: name || '' 
+        }])
         .select()
         .single();
 
@@ -40,10 +44,9 @@ class DatabaseService {
     }
   }
 
-  // Aqui mudou para string | undefined
   async setCurrentUser(userId: string | undefined) {
     try {
-      await supabase.from('bot_status').update({
+      await supabase.from('bot_config').update({
         current_user_id: userId || null
       }).eq('id', 1);
     } catch (error) {
@@ -53,7 +56,6 @@ class DatabaseService {
 
   async saveMessage(message: Omit<ConversationMessage, 'id' | 'created_at'>) {
     try {
-      // Omito os campos id e created_at pois Supabase cria automaticamente
       await supabase.from('messages').insert([message]);
     } catch (error) {
       logger.error('Erro ao salvar mensagem:', error);
@@ -63,7 +65,7 @@ class DatabaseService {
   async getUserLearningData(userId: string): Promise<UserLearningData | null> {
     try {
       const { data, error } = await supabase
-        .from('user_learning')
+        .from('user_learning_data')
         .select('*')
         .eq('user_id', userId)
         .single();
@@ -81,7 +83,7 @@ class DatabaseService {
       const { data, error } = await supabase
         .from('bot_config')
         .select('*')
-        .limit(1)
+        .eq('id', 1)
         .single();
 
       if (error) throw error;
@@ -89,6 +91,36 @@ class DatabaseService {
     } catch (error) {
       logger.error('Erro ao obter configuração do bot:', error);
       return null;
+    }
+  }
+
+  async getRecentMessages(userId: string, limit: number = 50): Promise<ConversationMessage[]> {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      logger.error('Erro ao obter mensagens recentes:', error);
+      return [];
+    }
+  }
+
+  async updateLearningData(userId: string, data: Partial<UserLearningData>) {
+    try {
+      await supabase.from('user_learning_data')
+        .upsert({
+          user_id: userId,
+          ...data,
+          updated_at: new Date().toISOString()
+        });
+    } catch (error) {
+      logger.error('Erro ao atualizar dados de aprendizado:', error);
     }
   }
 }

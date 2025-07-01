@@ -20,7 +20,7 @@ export class WhatsAppService {
 
   async initialize() {
     try {
-      logger.info('Initializing WhatsApp service...');
+      logger.info('Inicializando serviço WhatsApp...');
       
       const socket = await this.connectionManager.initialize(
         this.handleQRCode.bind(this),
@@ -32,38 +32,39 @@ export class WhatsAppService {
       }
 
     } catch (error) {
-      logger.error('Error initializing WhatsApp service:', error);
+      logger.error('Erro ao inicializar serviço WhatsApp:', error);
       await DatabaseService.updateBotStatus('error');
     }
   }
 
   private async handleQRCode(qr: string) {
-    logger.info('QR Code generated for frontend');
-    // QR code já foi salvo no banco pelo ConnectionManager
+    logger.info('QR Code gerado para o frontend');
   }
 
   private async handleConnectionUpdate(update: Partial<ConnectionState>) {
     if (update.connection === 'open') {
       const socket = this.connectionManager.getSocket();
       if (!socket) {
-        logger.error('Socket not available after connection');
+        logger.error('Socket não disponível após conexão');
         return;
       }
 
       const userInfo = socket.user;
       if (userInfo) {
-        logger.info('Creating/updating user in database...');
+        logger.info('Criando/atualizando usuário no banco de dados...');
         const user = await DatabaseService.findOrCreateUser(
           userInfo.id.split(':')[0],
           userInfo.name || userInfo.id.split(':')[0]
         );
-        if (user && user.id) {
+        if (user) {
           this.currentUser = user;
           await DatabaseService.setCurrentUser(user.id);
-          logger.info(`Connected as: ${user.display_name || user.phone_number}`);
+          logger.info(`Conectado como: ${user.display_name || user.phone_number}`);
           
-          // Garantir que o status seja atualizado no banco
           await DatabaseService.updateBotStatus('online', undefined);
+          
+          logger.info('🤖 Bot pronto para aprender e responder mensagens!');
+          logger.info(`📊 Usuário ativo: ${user.phone_number}`);
         }
       }
     }
