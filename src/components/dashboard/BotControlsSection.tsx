@@ -42,7 +42,9 @@ const BotControlsSection = ({ botStatus, servicesStatus }: BotControlsSectionPro
       });
       if (!response.ok) throw new Error('Erro ao conectar');
       
-      queryClient.invalidateQueries({ queryKey: ['bot-status'] });
+      // Invalida apenas as queries necessárias
+      queryClient.invalidateQueries({ queryKey: ['bot-status'], exact: true });
+      
       toast({
         title: "Conexão iniciada",
         description: "Aguardando QR Code...",
@@ -63,7 +65,10 @@ const BotControlsSection = ({ botStatus, servicesStatus }: BotControlsSectionPro
       });
       if (!response.ok) throw new Error('Erro ao desconectar');
       
-      queryClient.invalidateQueries({ queryKey: ['bot-status'] });
+      // Invalida queries específicas
+      queryClient.invalidateQueries({ queryKey: ['bot-status'], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['learning-data'], exact: false });
+      
       toast({
         title: "Desconectado",
         description: "Bot desconectado com sucesso",
@@ -84,7 +89,10 @@ const BotControlsSection = ({ botStatus, servicesStatus }: BotControlsSectionPro
       });
       if (!response.ok) throw new Error('Erro ao limpar sessão');
       
-      queryClient.invalidateQueries({ queryKey: ['bot-status'] });
+      // Invalida todas as queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['bot-status'], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['learning-data'], exact: false });
+      
       toast({
         title: "Sessão limpa",
         description: "Sessão do WhatsApp foi limpa",
