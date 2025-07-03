@@ -31,7 +31,7 @@ interface ServicesStatus {
 }
 
 export const useDashboardData = () => {
-  // Status do bot - reduzido para 5 segundos
+  // Status do bot - muito mais lento para evitar spam
   const { data: botStatus, isLoading: statusLoading, error: statusError } = useQuery({
     queryKey: ['bot-status'],
     queryFn: async (): Promise<BotStatus> => {
@@ -39,12 +39,15 @@ export const useDashboardData = () => {
       if (!response.ok) throw new Error('Erro ao obter status');
       return response.json();
     },
-    refetchInterval: 5000, // Aumentado de 2s para 5s
-    retry: 2, // Reduz tentativas de retry
-    staleTime: 3000, // Considera dados válidos por 3 segundos
+    refetchInterval: 10000, // Aumentado para 10 segundos
+    retry: 1, // Apenas 1 tentativa
+    staleTime: 8000, // Considera dados válidos por 8 segundos
+    refetchOnWindowFocus: false, // Não refetch ao focar na janela
+    refetchOnMount: false, // Não refetch ao montar novamente
+    refetchIntervalInBackground: false, // Não refetch em background
   });
 
-  // Dados de aprendizado - só atualiza quando necessário
+  // Dados de aprendizado - muito menos frequente
   const { data: learningData } = useQuery({
     queryKey: ['learning-data', botStatus?.current_user?.id],
     queryFn: async (): Promise<LearningData> => {
@@ -61,11 +64,14 @@ export const useDashboardData = () => {
       return response.json();
     },
     enabled: !!botStatus?.current_user?.id && !statusError,
-    staleTime: 30000, // Considera dados válidos por 30 segundos
-    refetchInterval: 30000, // Atualiza apenas a cada 30 segundos
+    staleTime: 60000, // 1 minuto
+    refetchInterval: 60000, // 1 minuto
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
   });
 
-  // Status dos serviços - menos frequente
+  // Status dos serviços - muito menos frequente
   const { data: servicesStatus } = useQuery({
     queryKey: ['services-status'],
     queryFn: async (): Promise<ServicesStatus> => {
@@ -73,9 +79,12 @@ export const useDashboardData = () => {
       if (!response.ok) throw new Error('Erro ao verificar serviços');
       return response.json();
     },
-    refetchInterval: 15000, // Aumentado de 10s para 15s
-    retry: 1, // Menos tentativas
-    staleTime: 10000, // Considera dados válidos por 10 segundos
+    refetchInterval: 30000, // 30 segundos
+    retry: 1,
+    staleTime: 25000, // 25 segundos
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchIntervalInBackground: false,
   });
 
   return {

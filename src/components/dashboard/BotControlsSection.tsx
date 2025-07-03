@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bot, Zap, Cpu } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 interface BotControlsSectionProps {
   botStatus?: {
@@ -26,24 +27,26 @@ const BotControlsSection = ({ botStatus, servicesStatus }: BotControlsSectionPro
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const getStatusText = (status: string) => {
+  const getStatusText = useCallback((status: string) => {
     switch (status) {
       case 'online': return 'Online';
       case 'connecting': return 'Conectando';
       case 'error': return 'Erro';
       default: return 'Offline';
     }
-  };
+  }, []);
 
-  const handleConnect = async () => {
+  const handleConnect = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:3001/api/connect', {
         method: 'POST'
       });
       if (!response.ok) throw new Error('Erro ao conectar');
       
-      // Invalida apenas as queries necessárias
-      queryClient.invalidateQueries({ queryKey: ['bot-status'], exact: true });
+      // Invalidação mais específica e menos agressiva
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['bot-status'] });
+      }, 2000);
       
       toast({
         title: "Conexão iniciada",
@@ -56,18 +59,19 @@ const BotControlsSection = ({ botStatus, servicesStatus }: BotControlsSectionPro
         variant: "destructive"
       });
     }
-  };
+  }, [queryClient, toast]);
 
-  const handleDisconnect = async () => {
+  const handleDisconnect = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:3001/api/disconnect', {
         method: 'POST'
       });
       if (!response.ok) throw new Error('Erro ao desconectar');
       
-      // Invalida queries específicas
-      queryClient.invalidateQueries({ queryKey: ['bot-status'], exact: true });
-      queryClient.invalidateQueries({ queryKey: ['learning-data'], exact: false });
+      // Invalidação mais específica
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['bot-status'] });
+      }, 1000);
       
       toast({
         title: "Desconectado",
@@ -80,18 +84,19 @@ const BotControlsSection = ({ botStatus, servicesStatus }: BotControlsSectionPro
         variant: "destructive"
       });
     }
-  };
+  }, [queryClient, toast]);
 
-  const handleClearSession = async () => {
+  const handleClearSession = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:3001/api/clear-session', {
         method: 'POST'
       });
       if (!response.ok) throw new Error('Erro ao limpar sessão');
       
-      // Invalida todas as queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['bot-status'], exact: true });
-      queryClient.invalidateQueries({ queryKey: ['learning-data'], exact: false });
+      // Invalidação mais específica
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['bot-status'] });
+      }, 1000);
       
       toast({
         title: "Sessão limpa",
@@ -104,7 +109,7 @@ const BotControlsSection = ({ botStatus, servicesStatus }: BotControlsSectionPro
         variant: "destructive"
       });
     }
-  };
+  }, [queryClient, toast]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

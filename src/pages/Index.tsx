@@ -7,6 +7,14 @@ import StatusCards from '@/components/dashboard/StatusCards';
 import BotControlsSection from '@/components/dashboard/BotControlsSection';
 import LearningProgress from '@/components/dashboard/LearningProgress';
 import SystemLogs from '@/components/dashboard/SystemLogs';
+import { memo } from 'react';
+
+// Memoizar componentes para evitar re-renderizações desnecessárias
+const MemoizedDashboardHeader = memo(DashboardHeader);
+const MemoizedStatusCards = memo(StatusCards);
+const MemoizedBotControlsSection = memo(BotControlsSection);
+const MemoizedLearningProgress = memo(LearningProgress);
+const MemoizedSystemLogs = memo(SystemLogs);
 
 const Index = () => {
   const { logs } = useSocket();
@@ -26,22 +34,22 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
-        <DashboardHeader modelName={botStatus?.model_name} />
+        <MemoizedDashboardHeader modelName={botStatus?.model_name} />
         
-        <StatusCards 
+        <MemoizedStatusCards 
           botStatus={botStatus}
           learningData={learningData}
           servicesStatus={servicesStatus}
         />
 
-        <BotControlsSection 
+        <MemoizedBotControlsSection 
           botStatus={botStatus}
           servicesStatus={servicesStatus}
         />
 
-        <LearningProgress learningData={learningData} />
+        <MemoizedLearningProgress learningData={learningData} />
 
-        <SystemLogs logs={logs} />
+        <MemoizedSystemLogs logs={logs} />
 
         {/* Footer */}
         <div className="text-center mt-8 pt-8 border-t">
