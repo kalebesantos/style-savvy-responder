@@ -1,21 +1,20 @@
-
 import axios from 'axios';
 import DatabaseService from '../config/database';
 import logger from '../utils/logger';
 import { AIResponse, ConversationMessage } from '../types';
 
 class AIService {
-  private lmStudioUrl: string;
+  private ollamaUrl: string;
   private model: string;
 
   constructor() {
-    this.lmStudioUrl = process.env.LM_STUDIO_URL || 'http://localhost:1234';
-    this.model = process.env.LM_STUDIO_MODEL || 'mixtral';
+    this.ollamaUrl = process.env.LM_STUDIO_URL || 'http://localhost:11434';
+    this.model = process.env.LM_STUDIO_MODEL || 'phi3:mini';
   }
 
   async isServiceAvailable(): Promise<boolean> {
     try {
-      const response = await axios.get(`${this.lmStudioUrl}/v1/models`, {
+      const response = await axios.get(`${this.ollamaUrl}/api/tags`, {
         timeout: 5000
       });
       return response.status === 200;
@@ -35,26 +34,20 @@ class AIService {
       // Criar prompt personalizado baseado no aprendizado
       const personalizedPrompt = this.buildPersonalizedPrompt(message, learningData, recentMessages);
       
-      // Fazer requisição para LM Studio
-      const response = await axios.post(`${this.lmStudioUrl}/v1/chat/completions`, {
+      // Fazer requisição para Ollama
+      const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
         model: this.model,
-        messages: [
-          {
-            role: 'system',
-            content: personalizedPrompt.systemPrompt
-          },
-          {
-            role: 'user',
-            content: personalizedPrompt.userMessage
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 500
+        prompt: `${personalizedPrompt.systemPrompt}\n\nUsuário: ${personalizedPrompt.userMessage}\n\nAssistente:`,
+        stream: false,
+        options: {
+          temperature: 0.7,
+          num_predict: 500
+        }
       }, {
         timeout: 30000
       });
 
-      const aiText = response.data.choices[0].message.content.trim();
+      const aiText = response.data.response.trim();
       
       // Atualizar dados de aprendizado
       await this.updateLearningFromInteraction(userId, message, aiText);
